@@ -1,4 +1,4 @@
-#readme
+#Readme
 
 ![](view.png)
 yes, I used claude artifacts to cook this up. 
@@ -24,6 +24,13 @@ Give it your gemini api key, to store it locally.
 
 Then upload images/pdfs to pass them through & get the extracted text back.
 
+PNG images that have an 'alpha' channel currently cause an error.
+
 Test images are from the West Kennet Archaeological society, and from Jeff Blackadar's Progrmming Historian tutorial.
 
 More functions to come. Although maybe this would all just be better via a notebook. Anywhoo.
+
+Interesting - when I pass the italian site diary from Gabii, it jumps straight to translation rather than provide the verbatim text. Maybe this is a feature, not a bug. Modifying the prompt to prevent that behaviour may or may not be desired. The prompt currently instructs the model to describe any other imagery on the page that isn't handwriting - see below:
+
+![](view2.png)
+
