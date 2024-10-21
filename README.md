@@ -1,4 +1,13 @@
-#readme
+## update oct 21
+
+- on first run, in the terminal, you'll be prompted for your gemini key. This will be stored in your os environment. 
+- new 'instructions' tab that explains how to set that environment manually if necessary
+- alpha channels in pngs: now converted to rgb
+- warning in the instructions terminal re limitations of gemini free tier, and what you'll see if you exceed them
+
+- the automatic translation behaviour I noticed yesterday isn't happening today. Weird weird weird.
+
+## readme 
 
 ![](view.png)
 yes, I used claude artifacts to cook this up. 

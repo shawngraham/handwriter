@@ -5,36 +5,54 @@ from pdf2image import convert_from_path
 from PIL import Image
 import io
 import gradio as gr
-import json
+import subprocess
 
-# Function to load API key from local storage
-def load_api_key():
-    try:
-        with open('api_key.json', 'r') as f:
-            data = json.load(f)
-            return data.get('api_key')
-    except FileNotFoundError:
-        return None
-
-# Function to save API key to local storage
-def save_api_key(api_key):
-    with open('api_key.json', 'w') as f:
-        json.dump({'api_key': api_key}, f)
-
-# Load API key from local storage
-api_key = load_api_key()
+# Environment variable name for the API key
+API_KEY_ENV_VAR = "GEMINI_API_KEY"
 
 # Initialize Gemini model (will be set up later if API key is available)
 model = None
 
-def setup_gemini_model(api_key):
+def get_api_key():
+    """Get the API key from environment or prompt user if not set."""
+    api_key = os.environ.get(API_KEY_ENV_VAR)
+    if not api_key:
+        api_key = input(f"Please enter your Gemini API Key: ").strip()
+        if api_key:
+            # Set the environment variable for the current session
+            os.environ[API_KEY_ENV_VAR] = api_key
+            # Attempt to set it permanently
+            try:
+                shell = os.environ.get('SHELL', '/bin/bash').split('/')[-1]
+                config_file = f'.{shell}rc'
+                home = os.path.expanduser('~')
+                with open(os.path.join(home, config_file), 'a') as f:
+                    f.write(f'\nexport {API_KEY_ENV_VAR}="{api_key}"\n')
+                print(f"API key has been added to {config_file}. Please restart your terminal or run 'source ~/{config_file}' for it to take effect.")
+            except Exception as e:
+                print(f"Could not automatically set the environment variable permanently: {e}")
+                print(f"Please manually add the following line to your shell configuration file:")
+                print(f"export {API_KEY_ENV_VAR}='{api_key}'")
+    return api_key
+
+def setup_gemini_model():
     global model
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-pro-002')
+    api_key = get_api_key()
+    if api_key:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-1.5-pro-002')
+        return True
+    return False
 
 def process_image(image_path):
     """Process a single image and return the extracted text."""
     with Image.open(image_path) as img:
+        # Convert image to RGB if it has an alpha channel
+        if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+            bg = Image.new('RGB', img.size, (255, 255, 255))
+            bg.paste(img, mask=img.split()[3] if img.mode == 'RGBA' else img.split()[1])
+            img = bg
+        
         img_byte_arr = io.BytesIO()
         img.save(img_byte_arr, format='JPEG')
         img_byte_arr = img_byte_arr.getvalue()
@@ -64,7 +82,7 @@ def convert_pdf_to_images(pdf_path, output_folder):
 def process_files(files):
     """Process uploaded files (images or PDF) and return extracted text."""
     if model is None:
-        return "Please set up your API key first."
+        return "Failed to set up the Gemini model. Please check your API key."
 
     with tempfile.TemporaryDirectory() as temp_dir:
         results = []
@@ -85,34 +103,54 @@ def process_files(files):
         
     return "".join(results)
 
-def set_api_key(new_api_key):
-    global api_key
-    api_key = new_api_key
-    save_api_key(api_key)
-    setup_gemini_model(api_key)
-    return "API key set successfully. You can now use the OCR functionality."
+# Set up the model before launching the Gradio interface
+setup_gemini_model()
 
 # Define the Gradio interface
 with gr.Blocks() as iface:
     gr.Markdown("# Handwriting OCR using Gemini Vision")
-    gr.Markdown("Set your API first")
-    gr.Markdown("Then upload your files/pdf. PNGs need to not have an alpha channel.")
     
-    with gr.Tab("Set API Key"):
-        api_key_input = gr.Textbox(label="Enter your Gemini API Key", type="password")
-        set_key_button = gr.Button("Set API Key")
-        api_key_message = gr.Textbox(label="Status")
-        set_key_button.click(set_api_key, inputs=api_key_input, outputs=api_key_message)
-
     with gr.Tab("OCR"):
         file_input = gr.File(file_count="multiple", label="Upload images or PDF")
         ocr_button = gr.Button("Extract Text")
         text_output = gr.Textbox(label="Extracted Text", lines=10)
         ocr_button.click(process_files, inputs=file_input, outputs=text_output)
+    
+    with gr.Tab("Instructions"):
+        gr.Markdown("""
+        # Instructions for Using the Handwriting OCR App
 
-# Set up the model if API key is available
-if api_key:
-    setup_gemini_model(api_key)
+        Welcome to the Handwriting OCR application! This tool uses Google's Gemini Vision model to extract text from handwritten documents. Here's how to use it:
+
+        ## First-Time Setup
+        1. When you first run the application, you'll be prompted in the terminal to enter your Gemini API key.
+        2. The app will attempt to save your API key in your shell configuration file for future use.
+        3. If automatic saving fails, you'll see instructions in the terminal on how to manually set the API key.
+
+        ## Using the OCR Feature
+        1. Go to the "OCR" tab.
+        2. Click on "Upload images or PDF" to select the files you want to process.
+        3. You can upload multiple image files (PNG, JPG, JPEG, TIFF, BMP, GIF) or a single PDF file.
+        4. Click the "Extract Text" button to start the OCR process.
+        5. The extracted text will appear in the text box below.
+
+        ## Warning
+        The free tier with Gemini _may_ use any materials you process as part of future training iterations. Also, you are severly rate limited (meaning you can only process so much, so quickly). If you get 'error' in the output box, look at your terminal/console; if you see a '429' error this is because you've exceeded those limitations.
+
+        ## Troubleshooting
+        - If you see an error about the Gemini model not being set up, check that your API key is correctly set in your environment.
+        - To manually set your API key, add the following line to your shell configuration file (e.g., .bashrc, .zshrc):
+          ```
+          export GEMINI_API_KEY='your_api_key_here'
+          ```
+        - After manually setting the API key, restart your terminal or run `source ~/.bashrc`, (or equivalent for your shell, eg for zsh `source ~/.zshrc`).
+
+        ## Tips
+        - For best results, ensure your images are clear and well-lit.
+        - If processing a PDF, make sure it's not password-protected.
+
+        If you encounter any issues or have questions, please refer to the Gemini API documentation or contact support.
+        """)
 
 # Launch the app
 iface.launch()
