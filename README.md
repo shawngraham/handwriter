@@ -1,3 +1,6 @@
+## update oct 22
+- writes results to file (in same folder as app.py)
+
 ## update oct 21
 
 - on first run, in the terminal, you'll be prompted for your gemini key. This will be stored in your os environment. 
