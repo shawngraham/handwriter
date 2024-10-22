@@ -79,28 +79,60 @@ def convert_pdf_to_images(pdf_path, output_folder):
 
     return image_paths
 
+# def process_files(files):
+#     """Process uploaded files (images or PDF) and return extracted text."""
+#     if model is None:
+#         return "Failed to set up the Gemini model. Please check your API key."
+
+#     with tempfile.TemporaryDirectory() as temp_dir:
+#         results = []
+        
+#         for file in files:
+#             file_extension = os.path.splitext(file.name)[1].lower()
+            
+#             if file_extension == '.pdf':
+#                 pdf_images = convert_pdf_to_images(file.name, temp_dir)
+#                 for img_path in pdf_images:
+#                     extracted_text = process_image(img_path)
+#                     results.append(f"Page {os.path.basename(img_path)}:\n{extracted_text}\n\n")
+#             elif file_extension in ['.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif']:
+#                 extracted_text = process_image(file.name)
+#                 results.append(f"File {os.path.basename(file.name)}:\n{extracted_text}\n\n")
+#                 print(f"File {os.path.basename(file.name)}:\n{extracted_text}\n\n")
+#             else:
+#                 results.append(f"Unsupported file type: {file.name}\n\n")
+        
+#     return "".join(results)
+
 def process_files(files):
     """Process uploaded files (images or PDF) and return extracted text."""
     if model is None:
         return "Failed to set up the Gemini model. Please check your API key."
 
+    results_text = []  # Keep all results in a list for writing to file
     with tempfile.TemporaryDirectory() as temp_dir:
         results = []
-        
+
         for file in files:
             file_extension = os.path.splitext(file.name)[1].lower()
-            
+
             if file_extension == '.pdf':
                 pdf_images = convert_pdf_to_images(file.name, temp_dir)
                 for img_path in pdf_images:
                     extracted_text = process_image(img_path)
                     results.append(f"Page {os.path.basename(img_path)}:\n{extracted_text}\n\n")
+                    results_text.append(f"Page {os.path.basename(img_path)}:\n{extracted_text}\n\n")
             elif file_extension in ['.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif']:
                 extracted_text = process_image(file.name)
                 results.append(f"File {os.path.basename(file.name)}:\n{extracted_text}\n\n")
+                results_text.append(f"File {os.path.basename(file.name)}:\n{extracted_text}\n\n")
             else:
                 results.append(f"Unsupported file type: {file.name}\n\n")
-        
+
+    # Write all results to a file in the current directory
+    with open("extracted_text_results.txt", "w") as f:
+        f.write("".join(results_text))
+
     return "".join(results)
 
 # Set up the model before launching the Gradio interface
