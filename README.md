@@ -8,8 +8,6 @@
 - alpha channels in pngs: now converted to rgb
 - warning in the instructions terminal re limitations of gemini free tier, and what you'll see if you exceed them
 
-- the automatic translation behaviour I noticed yesterday isn't happening today. Weird weird weird.
-
 ## readme 
 
 ![](view.png)
@@ -42,7 +40,7 @@ Test images are from the West Kennet Archaeological society, and from Jeff Black
 
 More functions to come. Although maybe this would all just be better via a notebook. Anywhoo.
 
-Interesting - when I pass the italian site diary from Gabii, it jumps straight to translation rather than provide the verbatim text. Maybe this is a feature, not a bug. Modifying the prompt to prevent that behaviour may or may not be desired. The prompt currently instructs the model to describe any other imagery on the page that isn't handwriting - see below:
+Interesting - when I pass the italian site diary from Gabii (after working with texts in English) it jumps straight to translation rather than provide the verbatim text. Maybe this is a feature, not a bug. Modifying the prompt to prevent that behaviour may or may not be desired. The prompt currently instructs the model to describe any other imagery on the page that isn't handwriting - see below:
 
 ![](view2.png)
 
